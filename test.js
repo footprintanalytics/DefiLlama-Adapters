@@ -46,12 +46,16 @@ async function getTvl(
 ) {
   const chain = storedKey.split('-')[0]
   const api = new sdk.ChainApi({ chain, block: chainBlocks[chain], timestamp: unixTimestamp, storedKey, })
+  console.log("block ====>", api.block)
   api.api = api
   api.storedKey = storedKey
   if (!isFetchFunction) {
     let tvlBalances = await tvlFunction(api, ethBlock, chainBlocks, api);
+    console.log("tvlBalances", tvlBalances)
     if (tvlBalances === undefined) tvlBalances = api.getBalances()
+    console.log("tvlBalances", tvlBalances)
     const tvlResults = await computeTVL(tvlBalances, "now");
+
     await diplayUnknownTable({ tvlResults, storedKey, tvlBalances, })
     usdTvls[storedKey] = tvlResults.usdTvl;
     tokensBalances[storedKey] = tvlResults.tokenBalances;
@@ -107,6 +111,8 @@ sdk.api.abi.call = async (...args) => {
   let module = {};
   try {
     module = require(passedFile)
+    console.log("passedFile===>",passedFile)
+    console.log("module ==>",module)
   } catch (e) {
     console.log(e)
   }
@@ -450,4 +456,8 @@ async function preExit() {
   //   if (process.env.NO_EXIT_ON_LONG_RUN_RPC)
   //     sdk.error(e)
   // }
+}
+
+module.exports = {
+  getTvl
 }

@@ -85,11 +85,15 @@ async function vaultBalance(api, solvbtc) {
   }
   let slot = solvbtc[api.chain]["slot"];
 
+  console.log(api.timestamp)
   const graphData = await getGraphData(api.timestamp, api.chain, api, slot);
+  console.log(graphData)
   if (graphData.pools.length > 0) {
     const poolLists = graphData.pools;
 
     const poolConcretes = await concrete(poolLists, api);
+
+    console.log(poolConcretes)
 
     const poolBaseInfos = await api.multiCall({
       abi: abi.slotBaseInfo,
@@ -98,13 +102,14 @@ async function vaultBalance(api, solvbtc) {
         params: [index.openFundShareSlot]
       })),
     })
-
+    console.log(poolBaseInfos)
     let vaults = {};
     for (const key in poolLists) {
       if (poolBaseInfos[key][1] && poolLists[key]["vault"]) {
         vaults[`${poolBaseInfos[key][1].toLowerCase()}-${poolLists[key]["vault"].toLowerCase()}`] = [poolBaseInfos[key][1], poolLists[key]["vault"]]
       }
     }
+    console.log(vaults)
 
     const balances = await api.multiCall({
       abi: abi.balanceOf,
@@ -113,6 +118,7 @@ async function vaultBalance(api, solvbtc) {
         params: [index[1]]
       })),
     })
+    console.log(balances)
 
     for (const key in balances) {
       api.add(Object.values(vaults)[key][0], balances[key])
