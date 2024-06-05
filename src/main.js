@@ -34,6 +34,6 @@ koaApp.use(
 koaApp.use(cors({ credentials: true }))
 koaApp.use(router.routes())
 
-const server = http.createServer(koaApp.callback()).listen(3001,  () => {
-  console.log(`🚀 Server ready at http://localhost:${3001}`)
+const server = http.createServer(koaApp.callback()).listen(3000,  () => {
+  console.log(`🚀 Server ready at http://localhost:${3000}`)
 })

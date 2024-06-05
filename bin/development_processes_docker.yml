@@ -1,0 +1,7 @@
+apps:
+  - name: footprint-defiLlama-apdaters
+    script: './src/main.js'
+    instances: 1
+    exec_mode: 'cluster'
+    out_file: "/dev/null"
+    max_memory_restart: 3000M
