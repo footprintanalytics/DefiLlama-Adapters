@@ -10,7 +10,7 @@ const path = require("path");
 require("dotenv").config();
 const { ENV_KEYS } = require("./projects/helper/env");
 const { util: {
-  blocks: { getCurrentBlocks },
+  blocks: { getBlockNumber },
   humanizeNumber: { humanizeNumber },
 } } = require("@defillama/sdk");
 const { util } = require("@defillama/sdk");
@@ -43,10 +43,9 @@ async function getTvl(
   tvlFunction,
   isFetchFunction,
   storedKey,
-) {
+  ) {
   const chain = storedKey.split('-')[0]
   const api = new sdk.ChainApi({ chain, block: chainBlocks[chain], timestamp: unixTimestamp, storedKey, })
-  console.log("block ====>", api.block)
   api.api = api
   api.storedKey = storedKey
   if (!isFetchFunction) {
@@ -166,7 +165,7 @@ async function computeTVL(balances, timestamp) {
   const { errors } = await PromisePool.withConcurrency(5)
     .for(sliceIntoChunks(readKeys, 100))
     .process(async (keys) => {
-      tokenData.push((await axios.get(`https://coins.llama.fi/prices/current/${keys.join(',')}`)).data.coins)
+      tokenData.push((await axios.get(`https://coins.llama.fi/prices/${timestamp}/${keys.join(',')}`)).data.coins)
     })
 
   if (errors && errors.length)
@@ -226,11 +225,11 @@ Warning: `)
   };
 }
 
-setTimeout(() => {
-  console.log("Timeout reached, exiting...");
-  if (!process.env.NO_EXIT_ON_LONG_RUN_RPC)
-    process.exit(1);
-}, 10 * 60 * 1000) // 10 minutes
+// setTimeout(() => {
+//   console.log("Timeout reached, exiting...");
+//   if (!process.env.NO_EXIT_ON_LONG_RUN_RPC)
+//     process.exit(1);
+// }, 10 * 60 * 1000) // 10 minutes
 
 
 

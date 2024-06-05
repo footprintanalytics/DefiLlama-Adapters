@@ -1,4 +1,4 @@
-const { getTvl, mergeBalances, humanizeNumber } = require('../../../tvl.adapter')
+const { getTvl, mergeBalances } = require('../../../tvl.adapter')
 const path = require('path')
 const _ = require('lodash')
 
@@ -10,8 +10,8 @@ class ApiService {
         return this.instance
     }
 
-    async getTvl({protocol, chain, timestamp, block_number}){
-        const passedFile = path.resolve(process.cwd(), `projects/${protocol}`)
+    async getTvl({project, chain, timestamp, block_number}){
+        const passedFile = path.resolve(process.cwd(), `projects/${project}`)
         let module = {}
         try {
             module = require(passedFile)
@@ -117,7 +117,7 @@ class ApiService {
         console.log("tokensBalances", tokensBalances)
         console.log("usdTokenBalances", usdTokenBalances)
 
-        return {protocol, usdTvls, usdTokenBalances}
+        return {project, usdTvls, usdTokenBalances}
     }
 }
 

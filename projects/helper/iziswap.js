@@ -9,6 +9,7 @@ function iziswapExport({ poolHelpers, blacklistedTokens = [] }) {
     const chunkSize = isMerlin ? 3 : 10
 
     for (const manager of poolHelpers) {
+      console.log("manager", manager)
       let foundLastPool = false
       const poolMetaData = []
       const key = `${api.chain}-${manager}`
@@ -20,6 +21,7 @@ function iziswapExport({ poolHelpers, blacklistedTokens = [] }) {
           calls.push(j)
         i += chunkSize
         const poolMetas = await api.multiCall({ target: manager, abi: abi.poolMetas, calls, })
+        console.log('poolMetaData:====>', poolMetaData)
         for (const output of poolMetas) {
           if (output.tokenX === ADDRESSES.null && output.fee === '0') {
             foundLastPool = true
@@ -31,14 +33,15 @@ function iziswapExport({ poolHelpers, blacklistedTokens = [] }) {
 
       const poolCalls = poolMetaData.map(i => ({ params: [i.tokenX, i.tokenY, i.fee] }))
       const pools = await api.multiCall({ target: manager, abi: abi.pool, calls: poolCalls, })
-
+      console.log("pools: ====>", pools)
       allPools.push(...pools)
       allPoolMetas.push(...poolMetaData.map(i => ({ tokenX: i.tokenX, tokenY: i.tokenY })))
       allPools.forEach((output, i) => toa.push([allPoolMetas[i].tokenX, output], [allPoolMetas[i].tokenY, output],))
       await setCache('iziswap', key, { allPools, allPoolMetas, })
     }
+    console.log('toa', toa)
 
-    return sumTokens2({ tokensAndOwners: toa, api, blacklistedTokens, permitFailure: !isMerlin, sumChunkSize: isMerlin ? 1 : 100,})
+    return sumTokens2({ tokensAndOwners: toa, api, blacklistedTokens, permitFailure: !isMerlin, sumChunkSize: isMerlin ? 3 : 100,})
   }
 }
 

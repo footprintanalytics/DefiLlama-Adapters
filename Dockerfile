@@ -3,6 +3,7 @@ FROM node:16-alpine as base
 WORKDIR /app
 COPY package.json .
 COPY package-lock.json .
+COPY tvl.adapter.js .
 RUN apk add --no-cache python3 build-base
 RUN npm install --production --build-from-source && mv node_modules prod_node_modules
 RUN npm install --build-from-source
@@ -17,6 +18,8 @@ COPY liquidations ./liquidations
 COPY utils ./utils
 
 COPY package.json ./
+COPY tvl.adapter.js ./
+
 
 FROM node:16-alpine as prod
 RUN npm install pm2 -g
@@ -42,6 +45,7 @@ COPY --from=build /app/typings ./typings
 COPY --from=build /app/liquidations ./liquidations
 COPY --from=build /app/utils ./utils
 COPY --from=build /app/package.json .
+COPY --from=build /app/tvl.adapter.js .
 
 RUN chmod +x ./docker_entryponit.sh
 
