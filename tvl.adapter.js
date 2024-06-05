@@ -90,12 +90,12 @@ function mergeBalances(key, storedKeys, balancesObject) {
   }
 }
 
-if (process.argv.length < 3) {
-  console.error(`Missing argument, you need to provide the filename of the adapter to test.
-    Eg: node test.js projects/myadapter.js`);
-  process.exit(1);
-}
-const passedFile = path.resolve(process.cwd(), process.argv[2]);
+// if (process.argv.length < 3) {
+//   console.error(`Missing argument, you need to provide the filename of the adapter to test.
+//     Eg: node test.js projects/myadapter.js`);
+//   process.exit(1);
+// }
+// const passedFile = path.resolve(process.cwd(), .argv[2]);
 
 const originalCall = sdk.api.abi.call
 sdk.api.abi.call = async (...args) => {
@@ -106,203 +106,6 @@ sdk.api.abi.call = async (...args) => {
     throw e
   }
 }
-
-(async () => {
-  let module = {};
-  try {
-    module = require(passedFile)
-    console.log("passedFile===>",passedFile)
-    console.log("module ==>",module)
-  } catch (e) {
-    console.log(e)
-  }
-  // await initCache()
-  const chains = Object.keys(module).filter(item => typeof module[item] === 'object' && !Array.isArray(module[item]));
-  checkExportKeys(module, passedFile, chains)
-  const unixTimestamp = Math.round(Date.now() / 1000) - 60;
-  // const { chainBlocks } = await getCurrentBlocks([]); // fetch only ethereum block for local test
-  const chainBlocks = {}
-  const ethBlock = chainBlocks.ethereum;
-  const usdTvls = {};
-  const tokensBalances = {};
-  const usdTokenBalances = {};
-  const chainTvlsToAdd = {};
-  const knownTokenPrices = {};
-
-  let tvlPromises = Object.entries(module).map(async ([chain, value]) => {
-    if (typeof value !== "object" || value === null) {
-      return;
-    }
-    return Promise.all(
-      Object.entries(value).map(async ([tvlType, tvlFunction]) => {
-        if (typeof tvlFunction !== "function") {
-          return;
-        }
-        let storedKey = `${chain}-${tvlType}`;
-        let tvlFunctionIsFetch = false;
-        if (tvlType === "tvl") {
-          storedKey = chain;
-        } else if (tvlType === "fetch") {
-          storedKey = chain;
-          tvlFunctionIsFetch = true;
-        }
-        await getTvl(
-          unixTimestamp,
-          ethBlock,
-          chainBlocks,
-          usdTvls,
-          tokensBalances,
-          usdTokenBalances,
-          tvlFunction,
-          tvlFunctionIsFetch,
-          storedKey,
-        );
-        let keyToAddChainBalances = tvlType;
-        if (tvlType === "tvl" || tvlType === "fetch") {
-          keyToAddChainBalances = "tvl";
-        }
-        if (chainTvlsToAdd[keyToAddChainBalances] === undefined) {
-          chainTvlsToAdd[keyToAddChainBalances] = [storedKey];
-        } else {
-          chainTvlsToAdd[keyToAddChainBalances].push(storedKey);
-        }
-      })
-    );
-  });
-  if (module.tvl || module.fetch) {
-    let mainTvlIsFetch;
-    if (module.tvl) {
-      mainTvlIsFetch = false;
-    } else {
-      mainTvlIsFetch = true;
-    }
-    const mainTvlPromise = getTvl(
-      unixTimestamp,
-      ethBlock,
-      chainBlocks,
-      usdTvls,
-      tokensBalances,
-      usdTokenBalances,
-      mainTvlIsFetch ? module.fetch : module.tvl,
-      mainTvlIsFetch,
-      "tvl",
-    );
-    tvlPromises.push(mainTvlPromise);
-  }
-  await Promise.all(tvlPromises);
-  Object.entries(chainTvlsToAdd).map(([tvlType, storedKeys]) => {
-    if (usdTvls[tvlType] === undefined) {
-      usdTvls[tvlType] = storedKeys.reduce(
-        (total, key) => total + usdTvls[key],
-        0
-      );
-      mergeBalances(tvlType, storedKeys, tokensBalances);
-      mergeBalances(tvlType, storedKeys, usdTokenBalances);
-    }
-  });
-  if (usdTvls.tvl === undefined) {
-    throw new Error(
-      "Protocol doesn't have total tvl, make sure to export a tvl key either on the main object or in one of the chains"
-    );
-  }
-
-  Object.entries(usdTokenBalances).forEach(([chain, balances]) => {
-    console.log(`--- ${chain} ---`);
-    Object.entries(balances)
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([symbol, balance]) => {
-        console.log(symbol.padEnd(25, " "), humanizeNumber(balance));
-      });
-    console.log("Total:", humanizeNumber(usdTvls[chain]), "\n");
-  });
-  console.log(`------ TVL ------`);
-  const usdVals = Object.entries(usdTvls)
-  usdVals.sort((a, b) => b[1] - a[1])
-  usdVals.forEach(([chain, usdTvl]) => {
-    if (chain !== "tvl") {
-      console.log(chain.padEnd(25, " "), humanizeNumber(Math.round(usdTvl)));
-    }
-  });
-  console.log("\ntotal".padEnd(25, " "), humanizeNumber(usdTvls.tvl), "\n");
-
-  await preExit()
-  process.exit(0);
-})();
-
-
-function checkExportKeys(module, filePath, chains) {
-  filePath = filePath.split(path.sep)
-  filePath = filePath.slice(filePath.lastIndexOf('projects') + 1)
-
-  if (filePath.length > 2
-    || (filePath.length === 1 && !['.js', ''].includes(path.extname(filePath[0]))) // matches .../projects/projectXYZ.js or .../projects/projectXYZ
-    || (filePath.length === 2 &&
-      !(['api.js', 'index.js', 'apiCache.js',].includes(filePath[1])  // matches .../projects/projectXYZ/index.js
-        || ['treasury', 'entities'].includes(filePath[0])  // matches .../projects/treasury/project.js
-      )))
-    process.exit(0)
-
-  const blacklistedRootExportKeys = ['tvl', 'staking', 'pool2', 'borrowed', 'treasury', 'offers', 'vesting'];
-  const rootexportKeys = Object.keys(module).filter(item => typeof module[item] !== 'object');
-  const unknownChains = chains.filter(chain => !chainList.includes(chain));
-  const blacklistedKeysFound = rootexportKeys.filter(key => blacklistedRootExportKeys.includes(key));
-  let exportKeys = chains.map(chain => Object.keys(module[chain])).flat()
-  exportKeys.push(...rootexportKeys)
-  exportKeys = Object.keys(exportKeys.reduce((agg, key) => ({ ...agg, [key]: 1 }), {})) // get unique keys
-  const unknownKeys = exportKeys.filter(key => !whitelistedExportKeys.includes(key))
-
-  const hallmarks = module.hallmarks || [];
-
-  if (hallmarks.length) {
-    const TIMESTAMP_LENGTH = 10;
-    hallmarks.forEach(([timestamp, text]) => {
-      const strTimestamp = String(timestamp)
-      if (strTimestamp.length !== TIMESTAMP_LENGTH) {
-        throw new Error(`
-        Incorrect time format for the hallmark: [${strTimestamp}, ${text}] ,please use unix timestamp
-        `)
-      }
-    })
-  }
-
-
-  if (unknownChains.length) {
-    throw new Error(`
-    Unknown chain(s): ${unknownChains.join(', ')}
-    Note: if you think that the chain is correct but missing from our list, please add it to 'projects/helper/chains.json' file
-    `)
-  }
-
-  if (blacklistedKeysFound.length) {
-    throw new Error(`
-    Please move the following keys into the chain: ${blacklistedKeysFound.join(', ')}
-
-    We have a new adapter export specification now where tvl and other chain specific information are moved inside chain export.
-    For example if your protocol is on ethereum and has tvl and pool2, the export file would look like:
-    
-        module.exports = {
-          methodlogy: '...',
-          ethereum: {
-            tvl: 
-            pool2:
-          }
-        }
-
-    `)
-  }
-
-  if (unknownKeys.length) {
-    throw new Error(`
-    Found export keys that were not part of specification: ${unknownKeys.join(', ')}
-
-    List of valid keys: ${['', '', ...whitelistedExportKeys].join('\n\t\t\t\t')}
-    `)
-  }
-}
-
-
-process.on('unhandledRejection', handleError)
-process.on('uncaughtException', handleError)
 
 
 const BigNumber = require("bignumber.js");
@@ -456,4 +259,10 @@ async function preExit() {
   //   if (process.env.NO_EXIT_ON_LONG_RUN_RPC)
   //     sdk.error(e)
   // }
+}
+
+module.exports = {
+  getTvl,
+  mergeBalances,
+  humanizeNumber
 }
