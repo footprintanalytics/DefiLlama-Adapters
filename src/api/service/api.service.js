@@ -23,18 +23,20 @@ class ApiService {
             throw new Error(e)
         }
         let chains = Object.keys(module).filter(item => typeof module[item] === 'object' && !Array.isArray(module[item]))
-        if(!_.includes(chains, chain)) throw new Error(`project not support ${chain}`)
-        console.log(chain)
-        const filterChainModule = _.pick(module, chain)
+        chains = chain? _.filter(chains, el => chain === el) : chains
+        if(chain && _.isEmpty(chains)) throw new Error(`project not support ${chain}`)
+        const filterChainModule = _.pick(module, chains)
         console.log(filterChainModule)
-        const tCallDate = new Date(callDate)
+        const tCallDate = callDate? new Date(callDate): new Date()
         const startOfDay = new Date(tCallDate.getFullYear(), tCallDate.getMonth(), tCallDate.getDate())
-        // const unixTimestamp = Math.floor(startOfDay.getTime() / 1000)
-        const unixTimestamp = 1717597304
+        const unixTimestamp = Math.floor(startOfDay.getTime() / 1000) -60
+        // const unixTimestamp = 1717597304
         let chainBlocks = {}
         // const { chainBlocks } = await getCurrentBlocks([]); // fetch only ethereum block for local test
         // let chainBlocks =  { merlin: 1796805 }
-        chainBlocks = {[chain]: await getBlockNumber(chain, unixTimestamp)}
+        console.log("chains", chains)
+        if(callDate) for (const chain of chains) chainBlocks = _.assign(chainBlocks, {[chain]: await getBlockNumber(chain, unixTimestamp)})
+
         console.log("chainBlocks=====>", chainBlocks)
         const ethBlock = chainBlocks.ethereum;
         const usdTvls = {};
@@ -125,7 +127,7 @@ class ApiService {
         console.log("tokensBalances", tokensBalances)
         console.log("usdTokenBalances", usdTokenBalances)
 
-        return {project, usdTvls, usdTokenBalances}
+        return {project, usdTvls, usdTokenBalances,tokensBalances}
     }
 }
 
