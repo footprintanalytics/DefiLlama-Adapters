@@ -36,7 +36,7 @@ class ApiService {
         // let chainBlocks =  { merlin: 1796805 }
         console.log("chains", chains)
         if(callDate) for (const chain of chains) chainBlocks = _.assign(chainBlocks, {[chain]: await getBlockNumber(chain, unixTimestamp)})
-
+        if(project === 'solv-protocol-funds') _.unset(chainBlocks, 'bsc')
         console.log("chainBlocks=====>", chainBlocks)
         const ethBlock = chainBlocks.ethereum;
         const usdTvls = {};
