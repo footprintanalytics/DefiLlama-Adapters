@@ -20,6 +20,7 @@ const format = (pattern, notPattern = '@@@') => {
       }
 
     } catch (error) {
+      console.log(error)
       ctx.status = 500
       ctx.errorStack = error.stack
       ctx.body = {

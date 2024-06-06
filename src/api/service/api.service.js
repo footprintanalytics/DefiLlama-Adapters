@@ -1,6 +1,9 @@
 const { getTvl, mergeBalances } = require('../../../tvl.adapter')
 const path = require('path')
 const _ = require('lodash')
+const { util: {
+    blocks: { getBlockNumber }
+} } = require("@defillama/sdk");
 
 class ApiService {
     static getInstance() {
@@ -10,7 +13,7 @@ class ApiService {
         return this.instance
     }
 
-    async getTvl({project, chain, timestamp, block_number}){
+    async getTvl({project, chain, callDate}){
         const passedFile = path.resolve(process.cwd(), `projects/${project}`)
         let module = {}
         try {
@@ -24,10 +27,15 @@ class ApiService {
         console.log(chain)
         const filterChainModule = _.pick(module, chain)
         console.log(filterChainModule)
-
-        const unixTimestamp = Math.round(Date.now() / 1000) - 60;
+        const tCallDate = new Date(callDate)
+        const startOfDay = new Date(tCallDate.getFullYear(), tCallDate.getMonth(), tCallDate.getDate())
+        // const unixTimestamp = Math.floor(startOfDay.getTime() / 1000)
+        const unixTimestamp = 1717597304
+        let chainBlocks = {}
         // const { chainBlocks } = await getCurrentBlocks([]); // fetch only ethereum block for local test
-        const chainBlocks = {}
+        // let chainBlocks =  { merlin: 1796805 }
+        chainBlocks = {[chain]: await getBlockNumber(chain, unixTimestamp)}
+        console.log("chainBlocks=====>", chainBlocks)
         const ethBlock = chainBlocks.ethereum;
         const usdTvls = {};
         const tokensBalances = {};

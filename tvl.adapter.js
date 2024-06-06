@@ -53,7 +53,7 @@ async function getTvl(
     console.log("tvlBalances", tvlBalances)
     if (tvlBalances === undefined) tvlBalances = api.getBalances()
     console.log("tvlBalances", tvlBalances)
-    const tvlResults = await computeTVL(tvlBalances, "now");
+    const tvlResults = await computeTVL(tvlBalances, unixTimestamp);
 
     await diplayUnknownTable({ tvlResults, storedKey, tvlBalances, })
     usdTvls[storedKey] = tvlResults.usdTvl;
@@ -165,7 +165,7 @@ async function computeTVL(balances, timestamp) {
   const { errors } = await PromisePool.withConcurrency(5)
     .for(sliceIntoChunks(readKeys, 100))
     .process(async (keys) => {
-      tokenData.push((await axios.get(`https://coins.llama.fi/prices/${timestamp}/${keys.join(',')}`)).data.coins)
+      tokenData.push((await axios.get(`https://coins.llama.fi/prices/historical/${timestamp}/${keys.join(',')}`)).data.coins)
     })
 
   if (errors && errors.length)
@@ -183,10 +183,10 @@ async function computeTVL(balances, timestamp) {
 
       if (data == undefined) tokenBalances[`UNKNOWN (${address})`] = balance
       if ('confidence' in data && data.confidence < confidenceThreshold || !data.price) return
-      if (Math.abs(data.timestamp - Date.now() / 1e3) > (24 * 3600)) {
-        console.log(`Price for ${address} is stale, ignoring...`)
-        return
-      }
+      // if (Math.abs(data.timestamp - Date.now() / 1e3) > (24 * 3600)) {
+      //   console.log(`Price for ${address} is stale, ignoring...`)
+      //   return
+      // }
 
       let amount, usdAmount;
       if (address.includes(":") && !address.startsWith("coingecko:")) {
